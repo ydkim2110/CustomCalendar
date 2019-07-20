@@ -9,7 +9,10 @@ import android.graphics.Point;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Display;
+import android.view.ViewTreeObserver;
+import android.widget.ImageButton;
 import android.widget.LinearLayout;
+import android.widget.TextView;
 
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -30,10 +33,11 @@ public class CalendarActivity extends AppCompatActivity {
     private Calendar mCalendar = Calendar.getInstance(Locale.KOREA);
 
     private Toolbar mToolbar;
+    private TextView mCurrentDate;
+    private ImageButton previousBtn;
+    private ImageButton nextBtn;
 
     private int height = 0;
-    private int linearLayoutHeight = 0;
-    private int statusBarHeight = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -41,6 +45,28 @@ public class CalendarActivity extends AppCompatActivity {
         setContentView(R.layout.activity_calendar);
 
         initView();
+        handleEvent();
+    }
+
+    @Override
+    public void onWindowFocusChanged(boolean hasFocus) {
+        super.onWindowFocusChanged(hasFocus);
+        if (hasFocus) {
+            loadCalendar();
+        }
+    }
+
+    public void loadCalendar() {
+        Display display = CalendarActivity.this.getWindowManager().getDefaultDisplay();
+        Point size = new Point();
+        display.getSize(size);
+
+        int statusBarHeight = getStatusBarHeight();
+        int toolbarHeight = findViewById(R.id.toolbar).getMeasuredHeight();
+        int linearLayoutMonth = findViewById(R.id.linearLayout_month).getMeasuredHeight();
+        int linearLayoutDay = findViewById(R.id.linearLayout).getMeasuredHeight();
+
+        height = (size.y-statusBarHeight-toolbarHeight-linearLayoutMonth-linearLayoutDay)/5;
 
         mRecyclerView = findViewById(R.id.rv_calendar);
         mLayoutManager = new GridLayoutManager(this, 7);
@@ -48,39 +74,27 @@ public class CalendarActivity extends AppCompatActivity {
         mRecyclerView.addItemDecoration(new SpacesItemDecoration(0));
 
         setUpCalendar();
-
     }
 
     private void initView() {
         mToolbar = findViewById(R.id.toolbar);
+        mCurrentDate = findViewById(R.id.current_date);
+        previousBtn = findViewById(R.id.previousBtn);
+        nextBtn = findViewById(R.id.nextBtn);
+
         setSupportActionBar(mToolbar);
-
-        getSupportActionBar().setTitle(Common.dateFormat.format(mCalendar.getTime()));
-
-        setMeasuredDimensions();
-
-        Display display = CalendarActivity.this.getWindowManager().getDefaultDisplay();
-        Point size = new Point();
-        display.getSize(size);
-
-        height = size.y-mToolbar.getLayoutParams().height-51-63;
-
-        height = height/5;
-
-
+        getSupportActionBar().setTitle("Calendar");
     }
 
-
-    @Override
-    public void onWindowFocusChanged(boolean hasFocus) {
-        setMeasuredDimensions();
-        super.onWindowFocusChanged(hasFocus);
-    }
-
-    private void setMeasuredDimensions() {
-        LinearLayout linearLayout = findViewById(R.id.linearLayout);
-        linearLayoutHeight = linearLayout.getMeasuredHeight();
-        statusBarHeight = getStatusBarHeight();
+    private void handleEvent() {
+        previousBtn.setOnClickListener(v -> {
+            mCalendar.add(Calendar.MONTH, -1);
+            setUpCalendar();
+        });
+        nextBtn.setOnClickListener(v -> {
+            mCalendar.add(Calendar.MONTH, 1);
+            setUpCalendar();
+        });
     }
 
     public int getStatusBarHeight() {
@@ -93,6 +107,7 @@ public class CalendarActivity extends AppCompatActivity {
     }
 
     private void setUpCalendar() {
+        mCurrentDate.setText(Common.dateFormat.format(mCalendar.getTime()));
         mDateList.clear();
 
         Calendar monthCalendar = (Calendar) mCalendar.clone();
